@@ -1,9 +1,9 @@
 package main
 
 import (
+	"demo/hello/pb"
 	"flag"
 	"fmt"
-	"demo/hello/pb"
 	"time"
 
 	"strconv"

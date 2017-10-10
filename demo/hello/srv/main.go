@@ -1,13 +1,12 @@
 package main
 
 import (
+	"demo/hello/pb"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"time"
-
-	"demo/hello/pb"
 
 	"github.com/tiantour/protector"
 	"golang.org/x/net/context"
