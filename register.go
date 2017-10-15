@@ -28,10 +28,10 @@ func NewRegister() *Register {
 }
 
 // Add add kv
-func (r *Register) Add(service, host, port string) error {
+func (r *Register) Add(srv, host, port string) error {
 	cli := NewProtector().Client()
 	r.Addr = fmt.Sprintf("%s%s", host, port)
-	r.Traget = fmt.Sprintf("/%s/%s/%s", Prefix, service, r.Addr)
+	r.Traget = fmt.Sprintf("/%s/%s/%s", Prefix, srv, r.Addr)
 	go func() {
 		ticker := time.NewTicker(Interval)
 		for {
@@ -68,8 +68,8 @@ func (r *Register) Delete() error {
 }
 
 // Server etcd server
-func (r *Register) Server(service, host, port string) error {
-	err := r.Add(service, host, port)
+func (r *Register) Server(srv, host, port string) error {
+	err := r.Add(srv, host, port)
 	if err != nil {
 		return err
 	}

@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	service = flag.String("service", "hello_service", "service name")
-	host    = flag.String("host", "http://127.0.0.1", "register etcd address")
-	port    = flag.String("port", ":50000", "listening port")
+	srv  = flag.String("srv", "hello_service", "service name")
+	host = flag.String("host", "http://127.0.0.1", "register etcd address")
+	port = flag.String("port", ":50000", "listening port")
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	_ = protector.NewRegister().Server(service, host, port)
+	_ = protector.NewRegister().Server(srv, host, port)
 	log.Printf("starting hello service at %s", *port)
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
