@@ -32,7 +32,7 @@ Interval Interval
 
 register && wather
 ```
-_ = protector.NewRegister().Server("hello_service", "127.0.0.1:50000")
+_ = protector.NewRegister().Server("hello_service", "127.0.0.1", ":50000")
 	
 ```
 
