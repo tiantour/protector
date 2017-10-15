@@ -16,6 +16,7 @@ import (
 // Register register
 type Register struct {
 	Traget string
+	Addr   string
 	Stop   chan bool
 }
 
@@ -27,9 +28,10 @@ func NewRegister() *Register {
 }
 
 // Add add kv
-func (r *Register) Add(srv, addr string) error {
+func (r *Register) Add(service, host, port string) error {
 	cli := NewProtector().Client()
-	r.Traget = fmt.Sprintf("/%s/%s/%s", Prefix, srv, addr)
+	r.Addr = fmt.Sprintf("%s%s", host, port)
+	r.Traget = fmt.Sprintf("/%s/%s/%s", Prefix, service, r.Addr)
 	go func() {
 		ticker := time.NewTicker(Interval)
 		for {
@@ -41,7 +43,7 @@ func (r *Register) Add(srv, addr string) error {
 			if err != nil && err != rpctypes.ErrKeyNotFound {
 				log.Println(err)
 			}
-			_, err = cli.Put(context.TODO(), r.Traget, addr, clientv3.WithLease(res.ID))
+			_, err = cli.Put(context.TODO(), r.Traget, r.Addr, clientv3.WithLease(res.ID))
 			if err != nil {
 				log.Println("")
 			}
@@ -66,8 +68,8 @@ func (r *Register) Delete() error {
 }
 
 // Server etcd server
-func (r *Register) Server(srv, addr string) error {
-	err := r.Add(srv, addr)
+func (r *Register) Server(service, host, port string) error {
+	err := r.Add(service, host, port)
 	if err != nil {
 		return err
 	}

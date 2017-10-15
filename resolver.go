@@ -18,13 +18,6 @@ func NewResolver() *Resolver {
 	return &Resolver{}
 }
 
-// Client resolver client
-func (r *Resolver) Client(srv string) (*grpc.ClientConn, error) {
-	r.Target = fmt.Sprintf("/%s/%s/", Prefix, srv)
-	b := grpc.RoundRobin(r)
-	return grpc.DialContext(context.Background(), Endpoints[0], grpc.WithInsecure(), grpc.WithBalancer(b), grpc.WithBlock())
-}
-
 // Resolve Resolve
 func (r *Resolver) Resolve(target string) (naming.Watcher, error) {
 	cli := NewProtector().Client()
@@ -32,4 +25,11 @@ func (r *Resolver) Resolve(target string) (naming.Watcher, error) {
 		Client: cli,
 		Target: r.Target,
 	}, nil
+}
+
+// Client resolver client
+func (r *Resolver) Client(srv string) (*grpc.ClientConn, error) {
+	r.Target = fmt.Sprintf("/%s/%s/", Prefix, srv)
+	b := grpc.RoundRobin(r)
+	return grpc.DialContext(context.Background(), Endpoints[0], grpc.WithInsecure(), grpc.WithBalancer(b), grpc.WithBlock())
 }
