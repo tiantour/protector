@@ -15,6 +15,7 @@ import (
 
 // Register register
 type Register struct {
+	Client *clientv3.Client
 	Traget string
 	Addr   string
 	Stop   chan bool
@@ -22,28 +23,29 @@ type Register struct {
 
 // NewRegister new register
 func NewRegister() *Register {
+	cli := NewProtector().Client()
 	return &Register{
-		Stop: make(chan bool, 1),
+		Client: cli,
+		Stop:   make(chan bool, 1),
 	}
 }
 
 // Add add kv
 func (r *Register) Add(srv, host, port string) error {
-	cli := NewProtector().Client()
 	r.Addr = fmt.Sprintf("%s%s", host, port)
 	r.Traget = fmt.Sprintf("/%s/%s/%s", Prefix, srv, r.Addr)
 	go func() {
 		ticker := time.NewTicker(Interval)
 		for {
-			res, err := cli.Grant(context.TODO(), TTL)
+			res, err := r.Client.Grant(context.Background(), TTL)
 			if err != nil {
 				log.Println(err)
 			}
-			_, err = cli.Get(context.TODO(), r.Traget)
+			_, err = r.Client.Get(context.Background(), r.Traget)
 			if err != nil && err != rpctypes.ErrKeyNotFound {
 				log.Println(err)
 			}
-			_, err = cli.Put(context.TODO(), r.Traget, r.Addr, clientv3.WithLease(res.ID))
+			_, err = r.Client.Put(context.Background(), r.Traget, r.Addr, clientv3.WithLease(res.ID))
 			if err != nil {
 				log.Println("")
 			}
@@ -60,10 +62,9 @@ func (r *Register) Add(srv, host, port string) error {
 
 // Delete delete kv
 func (r *Register) Delete() error {
-	cli := NewProtector().Client()
 	r.Stop <- true
 	r.Stop = make(chan bool, 1)
-	_, err := cli.Delete(context.Background(), r.Traget)
+	_, err := r.Client.Delete(context.Background(), r.Traget)
 	return err
 }
 

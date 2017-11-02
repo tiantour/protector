@@ -19,7 +19,7 @@ var (
 	// Interval Interval
 	Interval = 10 * time.Second
 	// TTL ttl
-	TTL int64 = 15
+	TTL int64 = 900
 	// Prefix prefix
 	Prefix = "rpcx.io"
 )

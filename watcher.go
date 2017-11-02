@@ -16,6 +16,7 @@ type Watcher struct {
 
 // Close closes the Watcher.
 func (w *Watcher) Close() {
+	_ = w.Client.Close()
 }
 
 // Next watcher next
