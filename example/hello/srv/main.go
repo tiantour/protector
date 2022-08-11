@@ -1,7 +1,6 @@
 package main
 
 import (
-	"demo/hello/pb"
 	"flag"
 	"fmt"
 	"log"
@@ -9,25 +8,45 @@ import (
 	"time"
 
 	"github.com/tiantour/protector"
+	"github.com/tiantour/protector/example/hello/pb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
 var (
 	srv  = flag.String("srv", "hello_service", "service name")
-	host = flag.String("host", "http://127.0.0.1", "register etcd address")
-	port = flag.String("port", ":50000", "listening port")
+	port = flag.String("port", ":5000", "listening port")
+	host = flag.String("host", "localhost", "register etcd address")
 )
 
 func main() {
 	flag.Parse()
 
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints:   []string{"0.0.0.0:2379"},
+		DialTimeout: time.Second * 5,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		err := protector.Register(ctx, client, *srv, *host+*port)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	lis, err := net.Listen("tcp", *port)
 	if err != nil {
 		panic(err)
 	}
-	_ = protector.NewRegister().Server(srv, host, port)
-	log.Printf("starting hello service at %s", *port)
+
+	log.Printf("starting hello service at %s", *host+*port)
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
 	s.Serve(lis)

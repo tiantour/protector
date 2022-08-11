@@ -1,85 +1,39 @@
 package protector
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
-	"golang.org/x/net/context"
+	"github.com/pkg/errors"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// Register register
-type Register struct {
-	Client *clientv3.Client
-	Traget string
-	Addr   string
-	Stop   chan bool
-}
+const (
+	TimeToLive = 10
+)
 
-// NewRegister new register
-func NewRegister() *Register {
-	cli := NewProtector().Client()
-	return &Register{
-		Client: cli,
-		Stop:   make(chan bool, 1),
-	}
-}
-
-// Add add kv
-func (r *Register) Add(srv, host, port string) error {
-	r.Addr = fmt.Sprintf("%s%s", host, port)
-	r.Traget = fmt.Sprintf("/%s/%s/%s", Prefix, srv, r.Addr)
-	go func() {
-		ticker := time.NewTicker(Interval)
-		for {
-			res, err := r.Client.Grant(context.Background(), TTL)
-			if err != nil {
-				log.Println(err)
-			}
-			_, err = r.Client.Get(context.Background(), r.Traget)
-			if err != nil && err != rpctypes.ErrKeyNotFound {
-				log.Println(err)
-			}
-			_, err = r.Client.Put(context.Background(), r.Traget, r.Addr, clientv3.WithLease(res.ID))
-			if err != nil {
-				log.Println("")
-			}
-
-			select {
-			case <-r.Stop:
-				return
-			case <-ticker.C:
-			}
-		}
-	}()
-	return nil
-}
-
-// Delete delete kv
-func (r *Register) Delete() error {
-	r.Stop <- true
-	r.Stop = make(chan bool, 1)
-	_, err := r.Client.Delete(context.Background(), r.Traget)
-	return err
-}
-
-// Server etcd server
-func (r *Register) Server(srv, host, port string) error {
-	err := r.Add(srv, host, port)
+func Register(ctx context.Context, client *clientv3.Client, service, authority string) error {
+	resp, err := client.Grant(ctx, TimeToLive)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "etcd grant")
 	}
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL, syscall.SIGHUP, syscall.SIGQUIT)
-	go func() {
-		<-ch
-		r.Delete()
-		os.Exit(1)
-	}()
-	return nil
+
+	_, err = client.Put(ctx, fmt.Sprintf("/%s/%s", service, authority), authority, clientv3.WithLease(resp.ID))
+	if err != nil {
+		return errors.Wrap(err, "etcd put")
+	}
+
+	respCh, err := client.KeepAlive(ctx, resp.ID)
+	if err != nil {
+		return errors.Wrap(err, "etcd keep alive")
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-respCh:
+
+		}
+	}
 }
