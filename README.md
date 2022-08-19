@@ -12,6 +12,9 @@ grpc service register & resolver with etcd3
 
     // default endpoints
 	protector.Endpoints = []string{"0.0.0.0:2379"}
+
+    // default ttl
+    protector.TTL = 5
     ```
 
 2. server
