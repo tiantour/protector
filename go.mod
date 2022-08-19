@@ -3,6 +3,7 @@ module github.com/tiantour/protector
 go 1.19
 
 require (
+	github.com/deckarep/golang-set/v2 v2.1.0
 	github.com/golang/protobuf v1.5.2
 	github.com/pkg/errors v0.9.1
 	go.etcd.io/etcd/api/v3 v3.5.4
