@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	srv = flag.String("service", "hello_service", "service name")
+	srv = flag.String("srv", "hello_service", "service name")
 )
 
 func init() {
