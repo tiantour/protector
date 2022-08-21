@@ -35,7 +35,7 @@ func (r *Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts re
 		DialTimeout: time.Second * time.Duration(TTL),
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "new client")
+		return nil, errors.Wrap(err, "client new")
 	}
 
 	r = &Resolver{
@@ -45,14 +45,15 @@ func (r *Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts re
 		closeCh: make(chan struct{}, 1),
 		store:   make(map[string]mapset.Set[string]),
 	}
-	resolver.Register(r)
 
 	return r, r.start()
 }
 
 func (r *Resolver) ResolveNow(o resolver.ResolveNowOptions) {}
 
-func (r *Resolver) Close() {}
+func (r *Resolver) Close() {
+	close(r.closeCh)
+}
 
 func (r *Resolver) start() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(TTL))
@@ -84,10 +85,14 @@ func (r *Resolver) start() error {
 }
 
 func (r *Resolver) watch() {
-	endpoints := r.store[r.target.URL.Path]
-
 	ticker := time.NewTicker(time.Minute)
-	r.watchCh = r.client.Watch(context.Background(), r.target.URL.Path, clientv3.WithPrefix())
+	defer ticker.Stop()
+
+	w := clientv3.NewWatcher(r.client)
+	defer w.Close()
+
+	endpoints := r.store[r.target.URL.Path]
+	r.watchCh = w.Watch(context.Background(), r.target.URL.Path, clientv3.WithPrefix())
 	for {
 		select {
 		case res := <-r.watchCh:
